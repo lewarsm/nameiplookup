@@ -3,7 +3,9 @@ Small Python widget to look up names and Ips
 
 #Short Instructions
 This script will require tk module
+
 Update the py file to reflect the domains to show
+
         domain1 = "google.com"
         domain2 = "yahoo.com"
     

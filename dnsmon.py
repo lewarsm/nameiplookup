@@ -3,6 +3,7 @@ from tkinter import ttk
 import subprocess
 import re
 from datetime import datetime
+import json
 
 # Define Nord color scheme
 nord_colors = {
@@ -15,6 +16,21 @@ nord_colors = {
     "row_even": "#434C5E",
     "button": "#5E81AC"  # Blue color for the button
 }
+
+# Define region mapping in JSON format
+region_mapping_json = '''
+{
+    "prod0": "eu-west-1",
+    "prod1": "eu-west-2",
+    "qa0": "eu-west",
+    "qa1": "eu-east",
+    "qa3": "ca-central",
+    "qa4": "eu-central1"
+}
+'''
+
+# Load region mapping from JSON
+region_mapping = json.loads(region_mapping_json)
 
 def nslookup(domain):
     ip_addresses = set()
@@ -32,6 +48,12 @@ def nslookup(domain):
             return str(e), str(e)
     return list(names), list(ip_addresses)
 
+def get_region(name):
+    for key in region_mapping:
+        if key in name:
+            return region_mapping[key]
+    return 'Unknown'
+
 def show_results():
     domains = ["google.com", "yahoo.com", "mail.com", "dogpile.com"]
     results = []
@@ -39,7 +61,8 @@ def show_results():
     for domain in domains:
         names, ips = nslookup(domain)
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        results.append((domain, names[0] if names else 'No Name found', ips[0] if ips else 'No IP found', timestamp))
+        region = get_region(names[0]) if names else 'Unknown'
+        results.append((domain, names[0] if names else 'No Name found', ips[0] if ips else 'No IP found', region, timestamp))
     
     for item in tree.get_children():
         tree.delete(item)
@@ -47,8 +70,8 @@ def show_results():
     if any('No IP found' in result for result in results):
         result_label.config(text="Failed to retrieve IP addresses. Please check your network connection.", fg=nord_colors["error"])
     else:
-        for i, (domain, name, ip, time) in enumerate(results):
-            tree.insert("", "end", values=(domain, name, ip, time), tags=('oddrow' if i % 2 == 0 else 'evenrow'))
+        for i, (domain, name, ip, region, time) in enumerate(results):
+            tree.insert("", "end", values=(domain, name, ip, region, time), tags=('oddrow' if i % 2 == 0 else 'evenrow'))
         
         result_label.config(text="", fg=nord_colors["foreground"])
 
@@ -60,7 +83,7 @@ root.configure(bg=nord_colors["background"])
 
 tk.Label(root, text="DNS Lookup for google.com, yahoo.com, mail.com, and dogpile.com", bg=nord_colors["background"], fg=nord_colors["foreground"]).grid(row=0, columnspan=2, padx=10, pady=10)
 
-columns = ("Domain", "Name", "IP Address", "Timestamp")
+columns = ("Domain", "Name", "IP Address", "Region", "Timestamp")
 tree = ttk.Treeview(root, columns=columns, show="headings")
 for col in columns:
     tree.heading(col, text=col)

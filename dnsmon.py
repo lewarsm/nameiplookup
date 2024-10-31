@@ -20,12 +20,12 @@ nord_colors = {
 # Define region mapping in JSON format
 region_mapping_json = '''
 {
-    "prod0": "eu-west-1",
-    "prod1": "eu-west-2",
-    "qa0": "eu-west",
-    "qa1": "eu-east",
-    "qa3": "ca-central",
-    "qa4": "eu-central1"
+    "prod0": "location1",
+    "prod1": "location2",
+    "qa0": "location3",
+    "qa1": "location4",
+    "qa3": "location5",
+    "qa4": "location6"
 }
 '''
 

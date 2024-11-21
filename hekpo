@@ -1,0 +1,58 @@
+```python
+def show_help():
+    help_window = tk.Toplevel()
+    help_window.title("Help")
+    help_window.geometry("400x300")
+
+    style = ttk.Style(help_window)
+    colors = NORD_STYLES["standard"]
+    style.configure("TFrame", background=colors["background"])
+    style.configure("TLabel", background=colors["background"], foreground=colors["foreground"])
+    style.configure("TButton", background=colors["button"], foreground=colors["foreground"])
+    style.map("TButton", background=[("active", colors["highlight"])])
+
+    frame = ttk.Frame(help_window, padding="10")
+    frame.pack(fill=tk.BOTH, expand=True)
+
+    help_text = (
+        "Welcome to the Network Tools Application!\n\n"
+        "Features:\n"
+        "- NSLookup: Perform DNS lookups for a list of domains.\n"
+        "- HTTPRequest: Perform HTTP requests to a list of URLs.\n"
+        "- JWKSCheck: Verify certificates from a JWKS endpoint.\n"
+        "- Play Audio: Play an audio file.\n"
+        "- Ping Tool: Diagnose network issues by pinging hosts.\n"
+        "- JWT Decoder: Decode and display JWTs.\n"
+        "- OIDC Debugger: Test OIDC using PKCE and view tokens.\n"
+        "Double-click any row to delete it.\n"
+    )
+
+    ttk.Label(frame, text=help_text).pack(padx=5, pady=5)
+    ttk.Button(frame, text="Close", command=help_window.destroy).pack(padx=5, pady=5)
+
+..
+        self.table.bind("<Double-1>", self.delete_row)
+
+..
+
+    def delete_row(self, event):
+
+        selected_item = self.table.selection()[0]
+
+        self.table.delete(selected_item)
+...
+        self.cert_table.bind("<Double-1>", self.delete_row)
+
+        self.ec_table.bind("<Double-1>", self.delete_row)
+
+
+
+    def delete_row(self, event):
+
+        selected_item = self.table.selection()[0]
+
+        self.table.delete(selected_item)
+
+
+...
+```

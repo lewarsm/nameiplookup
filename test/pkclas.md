@@ -42,14 +42,23 @@ class JWKSCheck:
         self.cert_table.configure(yscroll=self.cert_scrollbar_y.set)
         self.cert_scrollbar_y.grid(row=2, column=4, sticky='ns')
 
+        self.cert_scrollbar_x = ttk.Scrollbar(self.frame, orient=tk.HORIZONTAL, command=self.cert_table.xview)
+        self.cert_table.configure(xscroll=self.cert_scrollbar_x.set)
+        self.cert_scrollbar_x.grid(row=3, column=0, columnspan=4, sticky='ew')
+
         self.ec_table = self.setup_table(self.frame, ("Key Type", "Key ID", "Use", "X", "Y", "Curve"))
-        self.ec_table.grid(row=3, column=0, columnspan=4, padx=5, pady=5, sticky="nsew")
+        self.ec_table.grid(row=4, column=0, columnspan=4, padx=5, pady=5, sticky="nsew")
 
         self.ec_scrollbar_y = ttk.Scrollbar(self.frame, orient=tk.VERTICAL, command=self.ec_table.yview)
         self.ec_table.configure(yscroll=self.ec_scrollbar_y.set)
-        self.ec_scrollbar_y.grid(row=3, column=4, sticky='ns')
+        self.ec_scrollbar_y.grid(row=4, column=4, sticky='ns')
+
+        self.ec_scrollbar_x = ttk.Scrollbar(self.frame, orient=tk.HORIZONTAL, command=self.ec_table.xview)
+        self.ec_table.configure(xscroll=self.ec_scrollbar_x.set)
+        self.ec_scrollbar_x.grid(row=5, column=0, columnspan=4, sticky='ew')
 
         self.frame.rowconfigure(2, weight=1)
+        self.frame.rowconfigure(4, weight=1)
         self.frame.columnconfigure(0, weight=1)
         self.cert_table.bind("<Double-1>", self.delete_row)
         self.ec_table.bind("<Double-1>", self.delete_row)
@@ -62,8 +71,10 @@ class JWKSCheck:
         if self.is_collapsed:
             self.cert_table.grid()
             self.cert_scrollbar_y.grid()
+            self.cert_scrollbar_x.grid()
             self.ec_table.grid()
             self.ec_scrollbar_y.grid()
+            self.ec_scrollbar_x.grid()
             self.url_entry.grid()
             self.add_url_btn.grid()
             self.refresh_btn.grid()
@@ -71,8 +82,10 @@ class JWKSCheck:
         else:
             self.cert_table.grid_remove()
             self.cert_scrollbar_y.grid_remove()
+            self.cert_scrollbar_x.grid_remove()
             self.ec_table.grid_remove()
             self.ec_scrollbar_y.grid_remove()
+            self.ec_scrollbar_x.grid_remove()
             self.url_entry.grid_remove()
             self.add_url_btn.grid_remove()
             self.refresh_btn.grid_remove()
@@ -122,10 +135,11 @@ class JWKSCheck:
         table = ttk.Treeview(master, columns=columns, show="headings")
         for col in columns:
             table.heading(col, text=col)
-            table.column(col, anchor=tk.W, width=150)
+            table.column(col, anchor=tk.W, width=150, stretch=True)
         return table
 
     def clear_table(self, table):
         for item in table.get_children():
             table.delete(item)
+
 ```

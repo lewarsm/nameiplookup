@@ -210,17 +210,21 @@ class OIDCDebugger:
 
             tokens = response.json()
             self.display_tokens(tokens)
-       def display_tokens(self, tokens):
-        self.response_text.delete(1.0, tk.END)
-        for key, value in tokens.items():
-            self.response_text.insert(tk.END, f"{key}: {value}\n")
+    def display_tokens(self, tokens):
+        try:
+            self.response_text.delete(1.0, tk.END)
+            for key, value in tokens.items():
+               self.response_text.insert(tk.END, f"{key}: {value}\n")
 
-        if "id_token" in tokens:
-            self.decode_jwt(tokens["id_token"])
-        if "access_token" in tokens:
-            self.introspect_token(tokens["access_token"], "access")
-        if "refresh_token" in tokens:
-            self.introspect_token(tokens["refresh_token"], "refresh")
+            if "id_token" in tokens:
+                self.decode_jwt(tokens["id_token"])
+            if "access_token" in tokens:
+                self.introspect_token(tokens["access_token"], "access")
+            if "refresh_token" in tokens:
+                self.introspect_token(tokens["refresh_token"], "refresh")
+        except Exception as e:
+            self.response_text.insert(tk.END, f"Error displaying tokens: {e}\n")
+
 
     def decode_jwt(self, token):
         try:

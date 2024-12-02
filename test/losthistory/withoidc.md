@@ -18,25 +18,37 @@ import ssl
 from OpenSSL import crypto
 
 class OIDCDebugger:
-    def __init__(self, master, style):
+    def __init__(self, master, theme):
         self.master = master
-        self.style = style
-        self.is_collapsed = False
-        self.setup_ui()
+        self.theme = theme
         self.generate_self_signed_cert()
+        self.window = tk.Toplevel()
+        self.window.title("OIDC Debugger")
+        self.window.geometry("800x600")
+        self.apply_theme()
+        self.setup_ui()
+
+    def apply_theme(self):
+        style = ttk.Style(self.window)
+        style.theme_use(self.theme)
+        theme_colors = NORD_STYLES.get(self.theme, NORD_STYLES["standard"])
+        self.window.configure(background=theme_colors["background"])
 
     def setup_ui(self):
-        self.frame = ttk.LabelFrame(self.master, text="OIDC Debugger", padding="10")
-        self.frame.grid(row=3, column=0, sticky="nsew")
+        self.frame = ttk.Frame(self.window, padding="10")
+        self.frame.pack(fill=tk.BOTH, expand=True)
 
         self.endpoint_entry = ttk.Entry(self.frame, width=50)
         self.endpoint_entry.grid(row=0, column=0, padx=5, pady=5)
-        
+        self.endpoint_entry.insert(0, "Enter well-known endpoint URL")
+
         self.client_id_entry = ttk.Entry(self.frame, width=50)
         self.client_id_entry.grid(row=1, column=0, padx=5, pady=5)
+        self.client_id_entry.insert(0, "Enter Client ID")
 
         self.client_secret_entry = ttk.Entry(self.frame, width=50, show="*")
         self.client_secret_entry.grid(row=2, column=0, padx=5, pady=5)
+        self.client_secret_entry.insert(0, "Enter Client Secret")
 
         self.use_pkce = tk.BooleanVar()
         ttk.Checkbutton(self.frame, text="Use PKCE", variable=self.use_pkce).grid(row=3, column=0, padx=5, pady=5)
@@ -198,10 +210,7 @@ class OIDCDebugger:
 
             tokens = response.json()
             self.display_tokens(tokens)
-        except Exception as e:
-            self.response_text.insert(tk.END, f"Error exchanging code for tokens: {e}\n")
-
-    def display_tokens(self, tokens):
+       def display_tokens(self, tokens):
         self.response_text.delete(1.0, tk.END)
         for key, value in tokens.items():
             self.response_text.insert(tk.END, f"{key}: {value}\n")
@@ -316,3 +325,5 @@ def main():
 if __name__ == "__main__":
     custom_theme = load_custom_theme()
     main()
+
+```

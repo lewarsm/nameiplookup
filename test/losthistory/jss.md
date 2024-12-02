@@ -6,7 +6,7 @@ class OIDCDebugger:
         self.generate_self_signed_cert()
         self.window = tk.Toplevel()
         self.window.title("OIDC Debugger")
-        self.window.geometry("800x600")
+        self.window.geometry("1200x800")
         self.apply_theme()
         self.setup_ui()
 
@@ -32,23 +32,41 @@ class OIDCDebugger:
         self.client_secret_entry.grid(row=2, column=0, padx=5, pady=5)
         self.client_secret_entry.insert(0, "Enter Client Secret")
 
+        self.scope_entry = ttk.Entry(self.frame, width=50)
+        self.scope_entry.grid(row=3, column=0, padx=5, pady=5)
+        self.scope_entry.insert(0, "Enter Scopes (e.g., openid profile email)")
+
         self.use_pkce = tk.BooleanVar()
-        ttk.Checkbutton(self.frame, text="Use PKCE", variable=self.use_pkce).grid(row=3, column=0, padx=5, pady=5)
+        ttk.Checkbutton(self.frame, text="Use PKCE", variable=self.use_pkce).grid(row=4, column=0, padx=5, pady=5)
 
         self.generate_request_btn = ttk.Button(self.frame, text="Generate Auth Request", command=self.generate_auth_request)
-        self.generate_request_btn.grid(row=4, column=0, padx=5, pady=5)
+        self.generate_request_btn.grid(row=5, column=0, padx=5, pady=5)
 
         self.auth_url_text = tk.Text(self.frame, height=5, width=80)
-        self.auth_url_text.grid(row=5, column=0, padx=5, pady=5)
+        self.auth_url_text.grid(row=6, column=0, padx=5, pady=5)
 
         self.submit_btn = ttk.Button(self.frame, text="Submit Auth Request", command=self.submit_auth_request)
-        self.submit_btn.grid(row=6, column=0, padx=5, pady=5)
+        self.submit_btn.grid(row=7, column=0, padx=5, pady=5)
 
         self.response_table_frame = ttk.Frame(self.frame)
-        self.response_table_frame.grid(row=7, column=0, padx=5, pady=5)
+        self.response_table_frame.grid(row=0, column=1, rowspan=8, padx=5, pady=5, sticky="nsew")
+
+        table_scrollbar_y = ttk.Scrollbar(self.response_table_frame, orient="vertical")
+        table_scrollbar_x = ttk.Scrollbar(self.response_table_frame, orient="horizontal")
+
+        self.response_table = ttk.Treeview(self.response_table_frame, columns=("Key", "Value"), show="headings", yscrollcommand=table_scrollbar_y.set, xscrollcommand=table_scrollbar_x.set)
+        self.response_table.heading("Key", text="Key")
+        self.response_table.heading("Value", text="Value")
+
+        table_scrollbar_y.config(command=self.response_table.yview)
+        table_scrollbar_x.config(command=self.response_table.xview)
+
+        self.response_table.grid(row=0, column=0, sticky="nsew")
+        table_scrollbar_y.grid(row=0, column=1, sticky="ns")
+        table_scrollbar_x.grid(row=1, column=0, sticky="ew")
 
         self.response_text = tk.Text(self.frame, height=10, width=80)
-        self.response_text.grid(row=8, column=0, padx=5, pady=5)
+        self.response_text.grid(row=8, column=0, columnspan=2, padx=5, pady=5)
 
         self.certificate_btn = ttk.Button(self.frame, text="Show Certificate", command=self.show_certificate)
         self.certificate_btn.grid(row=9, column=0, padx=5, pady=5)
@@ -103,6 +121,7 @@ class OIDCDebugger:
         well_known_url = self.endpoint_entry.get().strip()
         client_id = self.client_id_entry.get().strip()
         client_secret = self.client_secret_entry.get().strip()
+        scopes = self.scope_entry.get().strip()
 
         if not well_known_url or not client_id:
             self.response_text.insert(tk.END, "Please enter the well-known endpoint and client credentials.\n")
@@ -130,7 +149,7 @@ class OIDCDebugger:
                 "client_id": client_id,
                 "redirect_uri": "https://localhost/callback",
                 "response_type": "code",
-                "scope": "openid profile",
+                "scope": scopes,
                 "state": state,
                 "nonce": nonce
             }
@@ -167,6 +186,7 @@ class OIDCDebugger:
         code_challenge = base64.urlsafe_b64encode(hashlib.sha256(code_verifier.encode('utf-8')).digest()).decode('utf-8').rstrip('=')
         return code_verifier, code_challenge
 
+
     def encode_params(self, params):
         return '&'.join([f"{k}={requests.utils.quote(v)}" for k, v in params.items()])
 
@@ -177,7 +197,6 @@ class OIDCDebugger:
             return
         webbrowser.open(auth_url)
         self.response_text.insert(tk.END, "Please complete the authentication in your browser.\n")
-
 
     def exchange_code_for_tokens(self, code):
         try:
@@ -251,3 +270,89 @@ class OIDCDebugger:
         table.pack(fill=tk.BOTH, expand=True)
         for key, value in config.items():
             table.insert("", "end", values=(key, value))
+        table_scrollbar_y = ttk.Scrollbar(self.response_table_frame, orient="vertical", command=table.yview)
+        table_scrollbar_x = ttk.Scrollbar(self.response_table_frame, orient="horizontal", command=table.xview)
+        table.configure(yscroll=table_scrollbar_y.set, xscroll=table_scrollbar_x.set)
+        table_scrollbar_y.pack(side=tk.RIGHT, fill=tk.Y)
+        table_scrollbar_x.pack(side=tk.BOTTOM, fill=tk.X)
+
+def main():
+    create_errors_file()
+
+    root = tk.Tk()
+    root.title("tools")
+    root.geometry("1200x800")
+
+    initial_theme = load_custom_theme()
+    apply_theme(initial_theme)
+
+    menubar = tk.Menu(root)
+    root.config(menu=menubar)
+    
+    options_menu = tk.Menu(menubar, tearoff=0)
+    menubar.add_cascade(label="Options", menu=options_menu)
+    options_menu.add_command(label="Custom Theme", command=open_custom_theme_window)
+
+    top_frame = ttk.Frame(root, padding="5")
+    top_frame.grid(row=0, column=0, columnspan=3, sticky="ew")
+    ttk.Button(top_frame, text="Play Audio", command=play_audio).pack(side=tk.LEFT, padx=5, pady=5)
+
+    main_frame = ttk.Frame(root, padding="5")
+    main_frame.grid(row=1, column=0, columnspan=3, sticky="nsew")
+
+    scrollbar = ttk.Scrollbar(main_frame, orient="vertical")
+    scrollbar_x = ttk.Scrollbar(main_frame, orient="horizontal")
+    
+    scrollable_frame = ttk.Frame(main_frame)
+    scrollable_frame.grid(row=0, column=0, sticky="nsew")
+    
+    scrollbar.grid(row=0, column=1, sticky="ns")
+    scrollbar_x.grid(row=1, column=0, sticky="ew")
+    
+    main_frame.grid_rowconfigure(0, weight=1)
+    main_frame.grid_columnconfigure(0, weight=1)
+
+    for i in range(3):
+        root.rowconfigure(i + 1, weight=1)
+    root.columnconfigure(0, weight=1)
+
+    theme_var = tk.StringVar(value=initial_theme)
+    
+    sidebar = ttk.Frame(scrollable_frame, padding="5")
+    sidebar.grid(row=0, column=1, rowspan=10, sticky="ns")
+
+    ttk.Label(sidebar, text="Choose Theme:").grid(row=1, column=0, padx=5, pady=5)
+    ttk.Radiobutton(sidebar, text="Nord", variable=theme_var, value="standard", command=lambda: apply_theme(theme_var.get())).grid(row=2, column=0, padx=5, pady=5)
+    ttk.Label(sidebar, text="Diagnostic Tools:").grid(row=5, column=0, padx=5, pady=5)
+    ttk.Button(sidebar, text="SAML Decoder", command=lambda: open_saml_window(theme_var.get())).grid(row=8, column=0, padx=5, pady=5)
+    ttk.Button(sidebar, text="OIDC Debugger", command=lambda: OIDCDebugger(scrollable_frame, theme_var.get())).grid(row=9, column=0, padx=5, pady=5)
+
+    nslookup = NSLookup(scrollable_frame, theme_var.get())
+    http_request = HTTPRequest(scrollable_frame, theme_var.get())
+    oidc_debugger = OIDCDebugger(scrollable_frame, theme_var.get())
+
+    for widget in scrollable_frame.winfo_children():
+        widget.grid_configure(sticky="nsew")
+
+    scrollable_frame.columnconfigure(0, weight=1)
+    scrollable_frame.rowconfigure(1, weight=1)
+    scrollable_frame.rowconfigure(2, weight=1)
+    scrollable_frame.rowconfigure(3, weight=1)
+    scrollable_frame.rowconfigure(4, weight=1)
+    scrollable_frame.rowconfigure(5, weight=1)
+    scrollable_frame.rowconfigure(6, weight=1)
+    scrollable_frame.rowconfigure(7, weight=1)
+    scrollable_frame.rowconfigure(8, weight=1)
+    scrollable_frame.rowconfigure(9, weight=1)
+
+    apply_theme(theme_var.get())
+    nslookup.expand()
+    http_request.expand()
+    oidc_debugger.expand()
+    root.mainloop()
+
+if __name__ == "__main__":
+    custom_theme = load_custom_theme()
+    main()
+
+```

@@ -331,3 +331,16 @@ if __name__ == "__main__":
     main()
 
 ```
+certifi==2024.8.30
+cffi==1.17.1
+charset-normalizer==3.4.0
+cryptography==43.0.3
+cryptology==0.0.14
+dnspython==2.7.0
+idna==3.10
+pillow==11.0.0
+pycparser==2.22
+pygame==2.6.1
+requests==2.32.3
+urllib3==2.2.3
+```

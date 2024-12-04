@@ -1830,3 +1830,144 @@ if __name__ == "__main__":
     main()
 
 ```
+```
+import http.server
+import socketserver
+import ssl
+import threading
+import tkinter as tk
+import requests
+
+https_server = None
+https_server_thread = None  # Add a reference to the thread
+
+
+def shutdown_https_server():
+    global https_server, https_server_thread
+    if https_server:
+        try:
+            https_server.shutdown()
+            https_server.server_close()
+            https_server = None
+            https_server_thread.join()  # Ensure the thread properly terminates
+            https_server_thread = None
+            print("HTTPS server shut down.")
+        except Exception as e:
+            print(f"Error during HTTPS server shutdown: {e}")
+    else:
+        print("No HTTPS server is running.")
+
+
+class OIDCDebugger:
+    def __init__(self, master, theme):
+        self.master = master
+        self.theme = theme
+        self.generate_self_signed_cert()
+        self.window = tk.Toplevel()
+        self.window.title("OIDC Debugger")
+        self.window.geometry("1400x600")
+        self.server_port = 4443
+        self.setup_ui()
+
+    def generate_auth_request(self):
+        well_known_url = self.endpoint_entry.get().strip()
+        client_id = self.client_id_entry.get().strip()
+        client_secret = self.client_secret_entry.get().strip()
+        scopes = self.scope_entry.get().strip()
+
+        if not well_known_url or not client_id:
+            self.response_text.insert(tk.END, "Please enter the well-known endpoint and client credentials.\n")
+            return
+
+        try:
+            response = requests.get(well_known_url, verify=False)
+            if response.status_code != 200:
+                self.response_text.insert(tk.END, f"Error fetching well-known configuration: {response.status_code}\n")
+                return
+
+            config = response.json()
+            self.display_well_known_response(config)
+
+            auth_endpoint = config.get("authorization_endpoint")
+            token_endpoint = config.get("token_endpoint")
+            if not auth_endpoint or not token_endpoint:
+                self.response_text.insert(tk.END, "Error: Unable to find required endpoints in the configuration.\n")
+                return
+
+            state = self.generate_state()
+            nonce = self.generate_nonce()
+            params = {
+                "client_id": client_id,
+                "redirect_uri": f"https://localhost:{self.server_port}/callback",
+                "response_type": "code",
+                "scope": scopes,
+                "state": state,
+                "nonce": nonce
+            }
+
+            if self.use_pkce.get():
+                code_verifier, code_challenge = self.generate_pkce()
+                params.update({
+                    "code_challenge": code_challenge,
+                    "code_challenge_method": "S256"
+                })
+                self.code_verifier = code_verifier
+            else:
+                self.code_verifier = None
+
+            auth_url = f"{auth_endpoint}?{self.encode_params(params)}"
+            self.auth_url_text.delete(1.0, tk.END)
+            self.auth_url_text.insert(tk.END, auth_url)
+            self.state = state
+            self.token_endpoint = token_endpoint
+
+            self.stop_https_server()
+            self.start_https_server()
+        except Exception as e:
+            self.response_text.insert(tk.END, f"Error generating auth request: {e}\n")
+
+    def start_https_server(self):
+        global https_server, https_server_thread
+        handler = self.create_https_handler()
+        https_server = socketserver.TCPServer(('localhost', self.server_port), handler)
+        context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        context.load_cert_chain(certfile='server.crt', keyfile='server.key')
+        https_server.socket = context.wrap_socket(https_server.socket, server_side=True)
+
+        https_server_thread = threading.Thread(target=https_server.serve_forever)
+        https_server_thread.daemon = True
+        https_server_thread.start()
+        self.response_text.insert(tk.END, f"HTTPS server started on https://localhost:{self.server_port}/callback\n")
+
+    def create_https_handler(self):
+        parent = self
+
+        class HTTPSHandler(http.server.SimpleHTTPRequestHandler):
+            def do_GET(self):
+                if self.path.startswith('/callback'):
+                    query = self.path.split('?')[-1]
+                    params = {k: v for k, v in (item.split('=') for item in query.split('&'))}
+                    code = params.get('code')
+                    parent.response_text.insert(tk.END, f"Received code: {code}\n")
+                    parent.exchange_code_for_tokens(code)
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(b"Authorization code received. You can close this window.")
+                else:
+                    self.send_error(404, "Not Found")
+
+            def do_POST(self):
+                if self.path == '/kill_server':
+                    threading.Thread(target=shutdown_https_server).start()
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(b"Server shutdown initiated.")
+
+        return HTTPSHandler
+
+    def stop_https_server(self):
+        shutdown_https_server()
+        self.response_text.insert(tk.END, "HTTPS server stopped.\n")
+```

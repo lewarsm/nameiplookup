@@ -9,7 +9,11 @@ class PingFederateClientApp:
         self.root = root
         self.root.title("PingFederate Client App")
         
-        self.base_urls = ["https://mine:9031/.well-known/openid-configuration", "https://localhost:9031/.well-known/openid-configuration"]
+        self.base_urls = [
+            'https://console.fed.prod.aws.swacorp.com',
+            'https://console.fed.qa.aws.swacorp.com',
+            'https://console.fed.dev.aws.swacorp.com'
+        ]
         
         self.setup_ui()
         
@@ -22,7 +26,7 @@ class PingFederateClientApp:
         self.password_entry = tk.Entry(self.root, show="*")
         self.password_entry.grid(row=1, column=1)
         
-        tk.Label(self.root, text="OpenID Configuration URL").grid(row=2, column=0)
+        tk.Label(self.root, text="Console URL").grid(row=2, column=0)
         self.url_var = tk.StringVar(self.root)
         self.url_var.set(self.base_urls[0])
         self.url_dropdown = ttk.Combobox(self.root, textvariable=self.url_var, values=self.base_urls, state="readonly")
@@ -86,7 +90,6 @@ class PingFederateClientApp:
         selected_client = self.client_listbox.get(selected_client_index)
         base_url = self.base_url_entry.get()
         client_info_url = f"{base_url}/pf-admin-api/v1/oauth/clients/{selected_client}"
-        access_token_manager_url = f"{base_url}/pf-admin-api/v1/oauth/accessTokenManagers/jwt"
         user_id = self.user_id_entry.get()
         password = self.password_entry.get()
         verify_ssl = not self.ignore_cert_var.get()
@@ -97,7 +100,8 @@ class PingFederateClientApp:
             self.result_text.delete(1.0, tk.END)
             self.result_text.insert(tk.END, "Client Information:\n")
             self.result_text.insert(tk.END, json.dumps(client_info, indent=4))
-            
+            access_token_manager_id = client_info.get("defaultAccessTokenManagerRef",{}).get("id") 
+            access_token_manager_url = f"{base_url}/pf-admin-api/v1/oauth/accessTokenManagers/{access_token_manager_id}"
             access_token_manager_response = requests.get(access_token_manager_url, auth=HTTPBasicAuth(user_id, password), headers={"accept": "application/json", "X-XSRF-Header": "PingFederate"}, verify=verify_ssl)
             if access_token_manager_response.status_code == 200:
                 access_token_manager_info = access_token_manager_response.json()

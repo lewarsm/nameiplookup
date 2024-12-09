@@ -43,10 +43,21 @@ class PingFederateClientApp:
         self.client_listbox.grid(row=6, column=0, columnspan=2, sticky="nsew")
         
         tk.Button(self.root, text="Get Client Info", command=self.get_client_info).grid(row=7, column=0, columnspan=2)
-        
-        self.result_text = tk.Text(self.root, height=10, width=50)
-        self.result_text.grid(row=8, column=0, columnspan=2, sticky="nsew")
-        
+
+        self.result_frame = tk.Frame(self.root)
+        self.result_frame.grid(row=8, column=0, columnspan=2, sticky="nsew")
+
+        self.result_text = tk.Text(self.result_frame, wrap=tk.NONE)
+        self.result_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        self.scroll_x = tk.Scrollbar(self.result_frame, orient=tk.HORIZONTAL, command=self.result_text.xview)
+        self.scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
+
+        self.scroll_y = tk.Scrollbar(self.result_frame, orient=tk.VERTICAL, command=self.result_text.yview)
+        self.scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.result_text.configure(xscrollcommand=self.scroll_x.set, yscrollcommand=self.scroll_y.set)
+
         self.root.grid_rowconfigure(6, weight=1)
         self.root.grid_columnconfigure(1, weight=1)
         
@@ -84,12 +95,13 @@ class PingFederateClientApp:
         if client_info_response.status_code == 200:
             client_info = client_info_response.json()
             self.result_text.delete(1.0, tk.END)
+            self.result_text.insert(tk.END, "Client Information:\n")
             self.result_text.insert(tk.END, json.dumps(client_info, indent=4))
             
             access_token_manager_response = requests.get(access_token_manager_url, auth=HTTPBasicAuth(user_id, password), headers={"accept": "application/json", "X-XSRF-Header": "PingFederate"}, verify=verify_ssl)
             if access_token_manager_response.status_code == 200:
                 access_token_manager_info = access_token_manager_response.json()
-                self.result_text.insert(tk.END, "\n\n")
+                self.result_text.insert(tk.END, "\n\nAccess Token Manager Information:\n")
                 self.result_text.insert(tk.END, json.dumps(access_token_manager_info, indent=4))
             else:
                 messagebox.showerror("Error", f"Failed to fetch access token manager info: {access_token_manager_response.status_code}")
